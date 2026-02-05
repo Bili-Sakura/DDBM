@@ -6,7 +6,7 @@ DDBM Utility functions.
 This module provides utility functions for DDBM training and inference.
 """
 
-from ..nn import (
+from .nn import (
     mean_flat,
     append_dims,
     append_zero,
@@ -21,6 +21,14 @@ from ..nn import (
     checkpoint,
     SiLU,
     GroupNorm32,
+)
+from .fp16_util import convert_module_to_f16, convert_module_to_f32
+from .script_util import (
+    create_model,
+    create_model_and_diffusion,
+    model_and_diffusion_defaults,
+    model_defaults,
+    NUM_CLASSES,
 )
 
 __all__ = [
@@ -38,4 +46,11 @@ __all__ = [
     "checkpoint",
     "SiLU",
     "GroupNorm32",
+    "convert_module_to_f16",
+    "convert_module_to_f32",
+    "create_model",
+    "create_model_and_diffusion",
+    "model_and_diffusion_defaults",
+    "model_defaults",
+    "NUM_CLASSES",
 ]

@@ -8,7 +8,7 @@ configurations. For diffusion scheduling and sampling, use DDBMScheduler
 and DDBMPipeline from the main ddbm package.
 
 Example:
-    >>> from ddbm.script_util import create_model, model_defaults
+    >>> from ddbm.utils.script_util import create_model, model_defaults
     >>> from ddbm import DDBMScheduler, DDBMPipeline
     >>>
     >>> # Create model
@@ -27,8 +27,8 @@ Example:
 import argparse
 from typing import Optional, Tuple, Union
 
-from .unet import UNetModel
-from .edm_unet import SongUNet
+from ..models.unet import UNetModel
+from ..models.edm_unet import SongUNet
 
 # Number of classes for ImageNet (used for class-conditional training)
 NUM_CLASSES = 1000

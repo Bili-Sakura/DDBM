@@ -36,7 +36,7 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 from ddbm import DDBMScheduler, DDBMPipeline
-from ddbm.script_util import create_model, model_defaults
+from ddbm.utils.script_util import create_model, model_defaults
 
 
 logging.basicConfig(

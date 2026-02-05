@@ -49,7 +49,7 @@ from accelerate.utils import ProjectConfiguration
 from tqdm.auto import tqdm
 
 from ddbm import DDBMScheduler, DDBMPipeline
-from ddbm.script_util import create_model, model_and_diffusion_defaults
+from ddbm.utils.script_util import create_model, model_and_diffusion_defaults
 
 
 logger = get_logger(__name__, log_level="INFO")

@@ -6,7 +6,7 @@ DDBM Model architectures.
 This module provides the UNet model architectures used for DDBM.
 """
 
-from ..unet import UNetModel
-from ..edm_unet import SongUNet
+from .unet import UNetModel
+from .edm_unet import SongUNet
 
 __all__ = ["UNetModel", "SongUNet"]

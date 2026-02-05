@@ -73,21 +73,21 @@ def __getattr__(name: str):
     """
     # Models
     if name == "UNetModel":
-        from .unet import UNetModel
+        from .models.unet import UNetModel
         return UNetModel
     if name == "SongUNet":
-        from .edm_unet import SongUNet
+        from .models.edm_unet import SongUNet
         return SongUNet
     
     # Model creation utilities
     if name == "create_model":
-        from .script_util import create_model
+        from .utils.script_util import create_model
         return create_model
     if name == "create_model_and_diffusion":
-        from .script_util import create_model_and_diffusion
+        from .utils.script_util import create_model_and_diffusion
         return create_model_and_diffusion
     if name == "model_and_diffusion_defaults":
-        from .script_util import model_and_diffusion_defaults
+        from .utils.script_util import model_and_diffusion_defaults
         return model_and_diffusion_defaults
     
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

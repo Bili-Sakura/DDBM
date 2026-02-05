@@ -12,7 +12,7 @@ import numpy as np
 import torch
 from torch.nn.functional import silu
 
-from .fp16_util import convert_module_to_f16, convert_module_to_f32
+from ..utils.fp16_util import convert_module_to_f16, convert_module_to_f32
 #----------------------------------------------------------------------------
 # Unified routine for initializing weights and biases.
 
