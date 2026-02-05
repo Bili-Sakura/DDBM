@@ -31,9 +31,7 @@ Components:
     - **Utils**: Utility functions for training and inference
 """
 
-from typing import TYPE_CHECKING
-
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 # =============================================================================
 # Primary API (Diffusers-compatible components)
@@ -60,9 +58,6 @@ __all__ = [
     "create_model",
     "create_model_and_diffusion",
     "model_and_diffusion_defaults",
-    # Legacy components (lazy loaded for backward compatibility)
-    "KarrasDenoiser",
-    "karras_sample",
 ]
 
 
@@ -74,7 +69,7 @@ def __getattr__(name: str):
     Lazy imports for components that require additional dependencies.
     
     This allows the core diffusers-compatible API (scheduler, pipeline) to work
-    without installing all optional dependencies like mpi4py, piq, etc.
+    without installing all optional dependencies.
     """
     # Models
     if name == "UNetModel":
@@ -94,13 +89,5 @@ def __getattr__(name: str):
     if name == "model_and_diffusion_defaults":
         from .script_util import model_and_diffusion_defaults
         return model_and_diffusion_defaults
-    
-    # Legacy diffusion components
-    if name == "KarrasDenoiser":
-        from .karras_diffusion import KarrasDenoiser
-        return KarrasDenoiser
-    if name == "karras_sample":
-        from .karras_diffusion import karras_sample
-        return karras_sample
     
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -508,7 +508,7 @@ class TestModuleStructure:
         import ddbm
         assert hasattr(ddbm, "__version__")
         assert isinstance(ddbm.__version__, str)
-        assert ddbm.__version__ == "0.3.0"
+        assert ddbm.__version__ == "0.4.0"
 
 
 if __name__ == "__main__":

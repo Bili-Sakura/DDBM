@@ -3,16 +3,24 @@
 """
 DDBM Training and Sampling Scripts.
 
-This module provides command-line scripts for training and sampling with DDBM:
+This module provides command-line scripts for training and sampling with DDBM
+using the Hugging Face diffusers-compatible API.
 
-- `train_ddbm_diffusers.py`: Diffusers-style training using accelerate
-- `ddbm_train.py`: Legacy training script using mpi4py
-- `image_sample.py`: Legacy sampling script for evaluation
+Available Scripts:
+    - `train_ddbm_diffusers.py`: Training script using accelerate for distributed training
+    - `sample_ddbm_diffusers.py`: Sampling script using the DDBMPipeline
 
 Usage:
-    # Diffusers-style training (recommended)
+    # Training (single GPU)
     python scripts/train_ddbm_diffusers.py --data_dir /path/to/data
-    
-    # Or with accelerate for multi-GPU
+
+    # Training (multi-GPU with accelerate)
     accelerate launch scripts/train_ddbm_diffusers.py --data_dir /path/to/data
+
+    # Sampling
+    python scripts/sample_ddbm_diffusers.py \\
+        --model_path ./outputs/model.pt \\
+        --data_dir /path/to/data \\
+        --output_dir ./samples
 """
+
