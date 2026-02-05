@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
-# Copyright 2024 The DDBM Authors and The HuggingFace Team.
+# Copyright 2024 The DDBM Authors and The Hugging Face Team.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #
 # Training script for Denoising Diffusion Bridge Models (DDBM) using
 # the Hugging Face accelerate library for distributed training.
 #
 # This script follows the diffusers training script conventions for
-# easy integration with the HuggingFace ecosystem.
+# easy integration with the Hugging Face ecosystem.
 
 """
 Training script for DDBM models using accelerate and diffusers patterns.
