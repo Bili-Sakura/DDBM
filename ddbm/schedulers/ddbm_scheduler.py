@@ -96,17 +96,45 @@ class DDBMScheduler(SchedulerMixin, ConfigMixin):
         beta_d = self.beta_d
         beta_min = self.beta_min
         
-        self._vp_snr_sqrt_reciprocal = lambda t: (np.e ** (0.5 * beta_d * (t ** 2) + beta_min * t) - 1) ** 0.5
-        self._vp_snr_sqrt_reciprocal_deriv = lambda t: 0.5 * (beta_min + beta_d * t) * (
-            self._vp_snr_sqrt_reciprocal(t) + 1 / self._vp_snr_sqrt_reciprocal(t)
-        )
-        self._s = lambda t: (1 + self._vp_snr_sqrt_reciprocal(t) ** 2).rsqrt() if isinstance(t, torch.Tensor) else (
-            1 + self._vp_snr_sqrt_reciprocal(t) ** 2) ** (-0.5)
-        self._s_deriv = lambda t: -self._vp_snr_sqrt_reciprocal(t) * self._vp_snr_sqrt_reciprocal_deriv(t) * (
-            self._s(t) ** 3)
-        self._logs = lambda t: -0.25 * t ** 2 * beta_d - 0.5 * t * beta_min
-        self._std = lambda t: self._vp_snr_sqrt_reciprocal(t) * self._s(t)
-        self._logsnr = lambda t: -2 * torch.log(torch.as_tensor(self._vp_snr_sqrt_reciprocal(t)))
+        def vp_snr_sqrt_reciprocal(t):
+            """Compute SNR^(-0.5) for VP schedule."""
+            t_tensor = torch.as_tensor(t)
+            return (torch.exp(0.5 * beta_d * (t_tensor ** 2) + beta_min * t_tensor) - 1) ** 0.5
+        
+        def vp_snr_sqrt_reciprocal_deriv(t):
+            """Derivative of SNR^(-0.5)."""
+            snr_sqrt_recip = vp_snr_sqrt_reciprocal(t)
+            return 0.5 * (beta_min + beta_d * t) * (snr_sqrt_recip + 1 / snr_sqrt_recip)
+        
+        def s(t):
+            """Scale factor s(t)."""
+            snr_sqrt_recip = vp_snr_sqrt_reciprocal(t)
+            return (1 + snr_sqrt_recip ** 2).rsqrt()
+        
+        def s_deriv(t):
+            """Derivative of s(t)."""
+            return -vp_snr_sqrt_reciprocal(t) * vp_snr_sqrt_reciprocal_deriv(t) * (s(t) ** 3)
+        
+        def logs(t):
+            """Log scale function."""
+            t_tensor = torch.as_tensor(t)
+            return -0.25 * t_tensor ** 2 * beta_d - 0.5 * t_tensor * beta_min
+        
+        def std(t):
+            """Standard deviation function."""
+            return vp_snr_sqrt_reciprocal(t) * s(t)
+        
+        def logsnr(t):
+            """Log SNR function."""
+            return -2 * torch.log(vp_snr_sqrt_reciprocal(t))
+        
+        self._vp_snr_sqrt_reciprocal = vp_snr_sqrt_reciprocal
+        self._vp_snr_sqrt_reciprocal_deriv = vp_snr_sqrt_reciprocal_deriv
+        self._s = s
+        self._s_deriv = s_deriv
+        self._logs = logs
+        self._std = std
+        self._logsnr = logsnr
 
     def _vp_logsnr(self, t):
         """Compute log SNR for VP schedule."""

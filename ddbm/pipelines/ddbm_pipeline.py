@@ -331,19 +331,17 @@ class DDBMPipeline(DiffusionPipeline):
         return d
 
     def _get_d_vp(self, x, sigma, denoised, x_T, w, stochastic=False):
-        """Get derivative for VP mode."""
-        beta_d = self.beta_d
-        beta_min = self.beta_min
+        """Get derivative for VP mode.
         
-        vp_snr_sqrt_reciprocal = lambda t: (np.e ** (0.5 * beta_d * (t ** 2) + beta_min * t) - 1) ** 0.5
-        vp_snr_sqrt_reciprocal_deriv = lambda t: 0.5 * (beta_min + beta_d * t) * (
-            vp_snr_sqrt_reciprocal(t) + 1 / vp_snr_sqrt_reciprocal(t)
-        )
-        s = lambda t: (1 + vp_snr_sqrt_reciprocal(t) ** 2) ** (-0.5)
-        s_deriv = lambda t: -vp_snr_sqrt_reciprocal(t) * vp_snr_sqrt_reciprocal_deriv(t) * (s(t) ** 3)
-        logs = lambda t: -0.25 * t ** 2 * beta_d - 0.5 * t * beta_min
-        std = lambda t: vp_snr_sqrt_reciprocal(t) * s(t)
-        logsnr = lambda t: -2 * torch.log(torch.as_tensor(vp_snr_sqrt_reciprocal(t)))
+        Uses the scheduler's VP helper functions to avoid code duplication.
+        """
+        # Use scheduler's VP helper functions
+        vp_snr_sqrt_reciprocal = self.scheduler._vp_snr_sqrt_reciprocal
+        vp_snr_sqrt_reciprocal_deriv = self.scheduler._vp_snr_sqrt_reciprocal_deriv
+        s_deriv = self.scheduler._s_deriv
+        logs = self.scheduler._logs
+        std = self.scheduler._std
+        logsnr = self.scheduler._logsnr
         
         logsnr_T = logsnr(torch.as_tensor(self.sigma_max))
         logs_T = logs(torch.as_tensor(self.sigma_max))
