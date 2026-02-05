@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="ddbm",
-    version="0.3.0",
+    version="0.4.0",
     packages=find_packages(),
     install_requires=[
         "torch>=2.0.0",
@@ -19,23 +19,15 @@ setup(
         "packaging",
     ],
     extras_require={
-        "full": [
-            # Original DDBM dependencies for training
-            "blobfile>=1.0.5",
-            "pandas",
-            "Cython",
-            "piq==0.7.0",
-            "joblib==0.14.0",
-            "albumentations==0.4.3",
-            "lmdb",
-            "clip @ git+https://github.com/openai/CLIP.git",
-            "mpi4py",
-            "flash-attn==2.0.4",
+        "training": [
+            # Dependencies for training scripts
             "wandb",
-            'omegaconf',
             'torchmetrics[image]',
-            'prdc',
+        ],
+        "evaluation": [
+            # Dependencies for evaluation
             'clean-fid==0.1.35',
+            'torchmetrics[image]',
         ],
         "dev": [
             "pytest",

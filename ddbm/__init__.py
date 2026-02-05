@@ -1,74 +1,93 @@
+# Copyright 2024 The DDBM Authors and The Hugging Face Team.
+# Licensed under the Apache License, Version 2.0 (the "License");
 """
 Denoising Diffusion Bridge Models (DDBM)
 
-This package provides a Hugging Face diffusers-compatible implementation of DDBM
-for image-to-image translation using diffusion bridges.
+A Hugging Face diffusers-compatible implementation of DDBM for image-to-image
+translation using diffusion bridges.
 
-Original paper: https://arxiv.org/abs/2309.16948
+Paper: "Denoising Diffusion Bridge Models" (https://arxiv.org/abs/2309.16948)
 
 Quick Start:
-    ```python
-    from ddbm import DDBMScheduler, DDBMPipeline
+    >>> from ddbm import DDBMScheduler, DDBMPipeline
+    >>>
+    >>> # Create scheduler
+    >>> scheduler = DDBMScheduler(pred_mode='vp', sigma_max=1.0)
+    >>>
+    >>> # Load your trained model
+    >>> model = ...  # Your trained DDBM UNet
+    >>>
+    >>> # Create pipeline
+    >>> pipeline = DDBMPipeline(unet=model, scheduler=scheduler)
+    >>>
+    >>> # Run inference
+    >>> result = pipeline(source_image=your_image, num_inference_steps=40)
+    >>> images = result.images
 
-    # Create scheduler
-    scheduler = DDBMScheduler(pred_mode='vp', sigma_max=1.0)
-
-    # Load your trained model
-    model = ...  # Your trained DDBM UNet
-
-    # Create pipeline
-    pipeline = DDBMPipeline(unet=model, scheduler=scheduler)
-
-    # Run inference
-    result = pipeline(source_image=your_image, num_inference_steps=40)
-    images = result.images
-    ```
+Components:
+    - **Schedulers**: DDBMScheduler for bridge diffusion process
+    - **Pipelines**: DDBMPipeline for image-to-image generation
+    - **Models**: UNetModel (ADM-style), SongUNet (EDM-style)
+    - **Utils**: Utility functions for training and inference
 """
 
-# Diffusers-compatible components (primary API)
+__version__ = "0.4.0"
+
+# =============================================================================
+# Primary API (Diffusers-compatible components)
+# =============================================================================
 from .schedulers import DDBMScheduler, DDBMSchedulerOutput
 from .pipelines import DDBMPipeline, DDBMPipelineOutput
 
-__version__ = "0.3.0"
-
+# =============================================================================
+# Exports
+# =============================================================================
 __all__ = [
-    # Diffusers-compatible (primary API)
+    # Version
+    "__version__",
+    # Schedulers
     "DDBMScheduler",
     "DDBMSchedulerOutput",
+    # Pipelines
     "DDBMPipeline",
     "DDBMPipelineOutput",
-    # Original components (lazy loaded for backward compatibility)
-    "KarrasDenoiser",
-    "karras_sample",
+    # Models (lazy loaded)
     "UNetModel",
     "SongUNet",
+    # Model creation utilities (lazy loaded)
     "create_model",
     "create_model_and_diffusion",
     "model_and_diffusion_defaults",
 ]
 
 
-def __getattr__(name):
-    """Lazy imports for original components that have heavier dependencies."""
-    if name == "KarrasDenoiser":
-        from .karras_diffusion import KarrasDenoiser
-        return KarrasDenoiser
-    elif name == "karras_sample":
-        from .karras_diffusion import karras_sample
-        return karras_sample
-    elif name == "UNetModel":
+# =============================================================================
+# Lazy imports for components with heavier dependencies
+# =============================================================================
+def __getattr__(name: str):
+    """
+    Lazy imports for components that require additional dependencies.
+    
+    This allows the core diffusers-compatible API (scheduler, pipeline) to work
+    without installing all optional dependencies.
+    """
+    # Models
+    if name == "UNetModel":
         from .unet import UNetModel
         return UNetModel
-    elif name == "SongUNet":
+    if name == "SongUNet":
         from .edm_unet import SongUNet
         return SongUNet
-    elif name == "create_model":
+    
+    # Model creation utilities
+    if name == "create_model":
         from .script_util import create_model
         return create_model
-    elif name == "create_model_and_diffusion":
+    if name == "create_model_and_diffusion":
         from .script_util import create_model_and_diffusion
         return create_model_and_diffusion
-    elif name == "model_and_diffusion_defaults":
+    if name == "model_and_diffusion_defaults":
         from .script_util import model_and_diffusion_defaults
         return model_and_diffusion_defaults
+    
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

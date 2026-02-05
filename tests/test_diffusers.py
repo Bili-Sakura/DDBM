@@ -457,5 +457,59 @@ class TestPipelineOutputTypes:
         assert result.images.shape == (1, 3, 32, 32)
 
 
+class TestModuleStructure:
+    """Tests for the package module structure."""
+
+    def test_models_module_import(self):
+        """Test that models module can be imported."""
+        from ddbm.models import UNetModel, SongUNet
+        assert UNetModel is not None
+        assert SongUNet is not None
+
+    def test_utils_module_import(self):
+        """Test that utils module can be imported."""
+        from ddbm.utils import (
+            append_dims,
+            mean_flat,
+            timestep_embedding,
+            normalization,
+        )
+        assert append_dims is not None
+        assert mean_flat is not None
+        assert timestep_embedding is not None
+        assert normalization is not None
+
+    def test_utils_append_dims(self):
+        """Test append_dims utility function."""
+        from ddbm.utils import append_dims
+
+        x = torch.tensor([1.0, 2.0])  # shape: (2,)
+        result = append_dims(x, 4)  # target: (2, 1, 1, 1)
+        assert result.shape == (2, 1, 1, 1)
+
+    def test_utils_mean_flat(self):
+        """Test mean_flat utility function."""
+        from ddbm.utils import mean_flat
+
+        x = torch.randn(2, 3, 4, 4)
+        result = mean_flat(x)
+        assert result.shape == (2,)  # mean over all dims except batch
+
+    def test_utils_timestep_embedding(self):
+        """Test timestep_embedding utility function."""
+        from ddbm.utils import timestep_embedding
+
+        timesteps = torch.tensor([0, 500, 1000])
+        embedding = timestep_embedding(timesteps, dim=128)
+        assert embedding.shape == (3, 128)
+
+    def test_version_attribute(self):
+        """Test that version is accessible."""
+        import ddbm
+        assert hasattr(ddbm, "__version__")
+        assert isinstance(ddbm.__version__, str)
+        assert ddbm.__version__ == "0.4.0"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
