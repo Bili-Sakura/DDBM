@@ -1,6 +1,6 @@
-# Copyright 2024 The DDBM Authors.
+# Copyright 2024 The DDBM Authors and The HuggingFace Team.
 # Licensed under the Apache License, Version 2.0 (the "License");
 
-from .ddbm_pipeline import DDBMPipeline
+from .ddbm_pipeline import DDBMPipeline, DDBMPipelineOutput
 
-__all__ = ["DDBMPipeline"]
+__all__ = ["DDBMPipeline", "DDBMPipelineOutput"]
