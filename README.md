@@ -17,6 +17,65 @@ conda install -c conda-forge mpi4py openmpi
 pip install -e .
 ```
 
+# 🤗 Hugging Face Diffusers Integration
+
+This codebase now supports the [Hugging Face diffusers](https://github.com/huggingface/diffusers) library for easier use and integration!
+
+## Quick Start
+
+```python
+import torch
+from ddbm import DDBMScheduler, DDBMPipeline
+
+# 1. Create scheduler
+scheduler = DDBMScheduler(
+    sigma_max=1.0,          # Maximum sigma (VP mode)
+    sigma_min=0.0001,       # Minimum sigma
+    pred_mode='vp',         # 'vp' or 've' schedule
+    beta_d=2.0,             # Beta_d parameter
+    beta_min=0.1,           # Beta_min parameter
+)
+
+# 2. Load your trained model
+from ddbm import create_model_and_diffusion, model_and_diffusion_defaults
+model, _ = create_model_and_diffusion(**model_and_diffusion_defaults())
+model.load_state_dict(torch.load("your_checkpoint.pt"))
+
+# 3. Create pipeline
+pipeline = DDBMPipeline(unet=model, scheduler=scheduler)
+
+# 4. Run inference
+result = pipeline(
+    source_image=your_source_image,  # Can be tensor or PIL Image
+    num_inference_steps=40,
+    guidance=1.0,
+    churn_step_ratio=0.33,
+    output_type='pil',
+)
+images = result["images"]
+```
+
+## Scheduler-Only Usage
+
+For custom sampling loops, use the scheduler directly:
+
+```python
+from ddbm import DDBMScheduler
+
+scheduler = DDBMScheduler(pred_mode='vp', sigma_max=1.0)
+scheduler.set_timesteps(40)
+
+# Add noise for training
+noisy = scheduler.add_noise(clean_samples, noise, timesteps, target_samples)
+
+# Access sigmas for sampling
+print(f"Sigmas: {scheduler.sigmas}")
+```
+
+See [examples/diffusers_example.py](examples/diffusers_example.py) for more detailed examples.
+
+---
+
 # Pre-trained models
 
 We provide pretrained checkpoints via Huggingface repo [here](https://huggingface.co/alexzhou907/DDBM). It includes models trained on two image-to-image datasets using Variance-Preserving (VP) schedules:
