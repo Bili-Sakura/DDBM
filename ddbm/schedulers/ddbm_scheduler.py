@@ -1,4 +1,4 @@
-# Copyright 2024 The DDBM Authors.
+# Copyright 2024 The DDBM Authors and The Hugging Face Team.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #
 # This scheduler implements the Denoising Diffusion Bridge Models (DDBM) sampling
@@ -6,25 +6,29 @@
 # Based on: https://arxiv.org/abs/2309.16948
 
 from dataclasses import dataclass
-from typing import Optional, Tuple, Union, List
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 
 from diffusers.configuration_utils import ConfigMixin, register_to_config
-from diffusers.schedulers.scheduling_utils import SchedulerMixin, SchedulerOutput
+from diffusers.utils import BaseOutput
+from diffusers.utils.torch_utils import randn_tensor
+from diffusers.schedulers.scheduling_utils import SchedulerMixin
 
 
 @dataclass
-class DDBMSchedulerOutput(SchedulerOutput):
+class DDBMSchedulerOutput(BaseOutput):
     """
-    Output class for the scheduler's step function.
+    Output class for the DDBM scheduler's `step` function output.
 
     Args:
-        prev_sample (`torch.Tensor` of shape `(batch_size, num_channels, height, width)`):
-            Computed sample `(x_{t-1})` of previous timestep.
-        pred_original_sample (`torch.Tensor` of shape `(batch_size, num_channels, height, width)`):
+        prev_sample (`torch.Tensor` of shape `(batch_size, num_channels, height, width)` for images):
+            Computed sample `(x_{t-1})` of previous timestep. `prev_sample` should be used as next model input in the
+            denoising loop.
+        pred_original_sample (`torch.Tensor` of shape `(batch_size, num_channels, height, width)` for images):
             The predicted denoised sample `(x_{0})` based on the model output from the current timestep.
+            `pred_original_sample` can be used to preview progress or for guidance.
     """
 
     prev_sample: torch.Tensor
@@ -33,33 +37,39 @@ class DDBMSchedulerOutput(SchedulerOutput):
 
 class DDBMScheduler(SchedulerMixin, ConfigMixin):
     """
-    DDBM (Denoising Diffusion Bridge Models) scheduler for diffusers.
-    
-    This scheduler implements the Heun sampler from the DDBM paper for 
-    image-to-image translation tasks.
+    Scheduler for Denoising Diffusion Bridge Models (DDBM).
+
+    This scheduler implements the Heun sampler from the DDBM paper for image-to-image translation tasks using
+    diffusion bridges. Unlike standard diffusion models that map noise to data, bridge models learn to transform
+    between two data distributions (source -> target).
 
     This model inherits from [`SchedulerMixin`] and [`ConfigMixin`]. Check the superclass documentation for the generic
-    methods the library implements for all schedulers.
+    methods the library implements for all schedulers such as loading and saving.
 
     Args:
-        sigma_min (`float`, defaults to 0.002):
-            Minimum sigma value.
-        sigma_max (`float`, defaults to 80.0):
-            Maximum sigma value (T in the diffusion bridge).
-        sigma_data (`float`, defaults to 0.5):
-            Data standard deviation.
-        beta_d (`float`, defaults to 2.0):
-            Beta_d parameter for VP schedule.
-        beta_min (`float`, defaults to 0.1):
+        sigma_min (`float`, defaults to `0.002`):
+            Minimum sigma value for the noise schedule.
+        sigma_max (`float`, defaults to `80.0`):
+            Maximum sigma value (T in the diffusion bridge). For VP schedules with normalized time, use 1.0.
+        sigma_data (`float`, defaults to `0.5`):
+            Standard deviation of the data distribution.
+        beta_d (`float`, defaults to `2.0`):
+            Beta_d parameter for VP (variance-preserving) schedule.
+        beta_min (`float`, defaults to `0.1`):
             Beta_min parameter for VP schedule.
-        rho (`float`, defaults to 7.0):
-            Rho parameter for Karras noise schedule.
-        pred_mode (`str`, defaults to "vp"):
-            Prediction mode, either "ve", "vp", "ve_simple", or "vp_simple".
-        num_train_timesteps (`int`, defaults to 40):
-            Number of diffusion steps for training.
+        rho (`float`, defaults to `7.0`):
+            Rho parameter for Karras noise schedule discretization.
+        pred_mode (`str`, defaults to `"vp"`):
+            Prediction mode for the diffusion process. Choose from:
+            - `"ve"`: Variance-exploding schedule
+            - `"vp"`: Variance-preserving schedule
+            - `"ve_simple"`: Simplified VE schedule
+            - `"vp_simple"`: Simplified VP schedule
+        num_train_timesteps (`int`, defaults to `40`):
+            Number of diffusion steps used during training.
     """
 
+    _compatibles = []
     order = 2  # Heun is a 2nd order method
 
     @register_to_config
@@ -74,6 +84,7 @@ class DDBMScheduler(SchedulerMixin, ConfigMixin):
         pred_mode: str = "vp",
         num_train_timesteps: int = 40,
     ):
+        # Store config values
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
         self.sigma_data = sigma_data
@@ -82,13 +93,16 @@ class DDBMScheduler(SchedulerMixin, ConfigMixin):
         self.rho = rho
         self.pred_mode = pred_mode
         self.num_train_timesteps = num_train_timesteps
+
+        # Initialize state
+        self.sigmas: Optional[torch.Tensor] = None
+        self.timesteps: Optional[torch.Tensor] = None
+        self.num_inference_steps: Optional[int] = None
         
-        # Initialize sigmas
-        self.sigmas = None
-        self.timesteps = None
-        self.num_inference_steps = None
-        
-        # For VP mode
+        # Standard deviation of the initial noise distribution
+        self.init_noise_sigma = sigma_max
+
+        # Initialize VP helper functions
         self._init_vp_functions()
     
     def _init_vp_functions(self):

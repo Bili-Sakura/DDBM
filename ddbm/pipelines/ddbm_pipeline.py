@@ -1,9 +1,10 @@
-# Copyright 2024 The DDBM Authors.
+# Copyright 2024 The DDBM Authors and The Hugging Face Team.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #
 # Pipeline for Denoising Diffusion Bridge Models (DDBM) compatible with
 # the Hugging Face diffusers library.
 
+from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -12,21 +13,46 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 from diffusers import DiffusionPipeline
+from diffusers.utils import BaseOutput
 from diffusers.utils.torch_utils import randn_tensor
 
 from ..schedulers.ddbm_scheduler import DDBMScheduler
 
 
-class DDBMPipeline(DiffusionPipeline):
+@dataclass
+class DDBMPipelineOutput(BaseOutput):
     """
-    Pipeline for image-to-image generation using Denoising Diffusion Bridge Models.
-
-    This pipeline implements the DDBM algorithm from the paper 
-    "Denoising Diffusion Bridge Models" (https://arxiv.org/abs/2309.16948).
+    Output class for DDBM pipeline.
 
     Args:
-        unet: A DDBM UNet model (either ADM-style UNetModel or EDM-style SongUNet).
-        scheduler: A `DDBMScheduler` for the diffusion process.
+        images (`List[PIL.Image.Image]` or `np.ndarray` or `torch.Tensor`):
+            List of denoised PIL images of length `batch_size` or NumPy array or torch tensor of shape
+            `(batch_size, height, width, num_channels)`.
+        nfe (`int`):
+            Number of function evaluations (model forward passes) used during sampling.
+    """
+
+    images: Union[List[Image.Image], np.ndarray, torch.Tensor]
+    nfe: int = 0
+
+
+class DDBMPipeline(DiffusionPipeline):
+    r"""
+    Pipeline for image-to-image generation using Denoising Diffusion Bridge Models.
+
+    This pipeline implements the DDBM algorithm from the paper
+    [Denoising Diffusion Bridge Models](https://arxiv.org/abs/2309.16948). DDBM learns to transform
+    between two data distributions using a diffusion bridge process, enabling high-quality
+    image-to-image translation.
+
+    This model inherits from [`DiffusionPipeline`]. Check the superclass documentation for the generic methods
+    implemented for all pipelines (downloading, saving, running on a particular device, etc.).
+
+    Args:
+        unet ([`torch.nn.Module`]):
+            A DDBM UNet model for denoising. Can be either ADM-style `UNetModel` or EDM-style `SongUNet`.
+        scheduler ([`DDBMScheduler`]):
+            A `DDBMScheduler` for the diffusion bridge process.
     """
 
     model_cpu_offload_seq = "unet"
@@ -42,7 +68,7 @@ class DDBMPipeline(DiffusionPipeline):
             unet=unet,
             scheduler=scheduler,
         )
-        
+
         # Store diffusion parameters for the denoiser
         self.sigma_data = scheduler.config.sigma_data
         self.sigma_max = scheduler.config.sigma_max
@@ -297,7 +323,7 @@ class DDBMPipeline(DiffusionPipeline):
         if not return_dict:
             return (images, nfe)
 
-        return {"images": images, "nfe": nfe}
+        return DDBMPipelineOutput(images=images, nfe=nfe)
 
     def _get_d_stochastic(self, x, sigma, denoised, x_T, guidance):
         """Get stochastic derivative for churn step."""

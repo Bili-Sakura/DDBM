@@ -1,25 +1,37 @@
 # Denoising Diffusion Bridge Models (ICLR 2024)
 
-Official Implementation of [Denoising Diffusion Bridge Models](https://arxiv.org/abs/2309.16948). 
+Official Implementation of [Denoising Diffusion Bridge Models](https://arxiv.org/abs/2309.16948).
 
 <p align="center">
   <img src="assets/teaser.png" width="100%"/>
 </p>
 
 
-# Dependencies
+# Installation
 
-To install all packages in this codebase along with their dependencies, run
+## Quick Install (Inference Only)
+
+For using DDBM with the diffusers API for inference:
+
+```sh
+pip install torch torchvision
+pip install -e .
+```
+
+## Full Install (Training + Inference)
+
+To install all packages for training and evaluation:
+
 ```sh
 pip install torch==2.1.0+cu121 torchvision==0.16.0+cu121 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu121
 pip install packaging ninja
 conda install -c conda-forge mpi4py openmpi
-pip install -e .
+pip install -e ".[full]"
 ```
 
 # 🤗 Hugging Face Diffusers Integration
 
-This codebase now supports the [Hugging Face diffusers](https://github.com/huggingface/diffusers) library for easier use and integration!
+This codebase is built on the [Hugging Face diffusers](https://github.com/huggingface/diffusers) library for easy use and integration!
 
 ## Quick Start
 
@@ -29,7 +41,7 @@ from ddbm import DDBMScheduler, DDBMPipeline
 
 # 1. Create scheduler
 scheduler = DDBMScheduler(
-    sigma_max=1.0,          # Maximum sigma (VP mode)
+    sigma_max=1.0,          # Maximum sigma (use 1.0 for VP mode)
     sigma_min=0.0001,       # Minimum sigma
     pred_mode='vp',         # 'vp' or 've' schedule
     beta_d=2.0,             # Beta_d parameter
@@ -37,9 +49,19 @@ scheduler = DDBMScheduler(
 )
 
 # 2. Load your trained model
-from ddbm import create_model_and_diffusion, model_and_diffusion_defaults
-model, _ = create_model_and_diffusion(**model_and_diffusion_defaults())
+from ddbm import create_model, model_and_diffusion_defaults
+model = create_model(
+    image_size=64,
+    in_channels=3,
+    num_channels=128,
+    num_res_blocks=2,
+    unet_type='adm',
+    condition_mode='concat',
+    **{k: v for k, v in model_and_diffusion_defaults().items()
+       if k not in ['image_size', 'in_channels', 'num_channels', 'num_res_blocks']}
+)
 model.load_state_dict(torch.load("your_checkpoint.pt"))
+model.eval()
 
 # 3. Create pipeline
 pipeline = DDBMPipeline(unet=model, scheduler=scheduler)
@@ -52,7 +74,10 @@ result = pipeline(
     churn_step_ratio=0.33,
     output_type='pil',
 )
-images = result["images"]
+
+# 5. Access results (using diffusers-style output)
+images = result.images  # List of PIL Images
+nfe = result.nfe        # Number of function evaluations
 ```
 
 ## Scheduler-Only Usage
@@ -65,11 +90,40 @@ from ddbm import DDBMScheduler
 scheduler = DDBMScheduler(pred_mode='vp', sigma_max=1.0)
 scheduler.set_timesteps(40)
 
-# Add noise for training
+# Add noise for training (bridge process)
 noisy = scheduler.add_noise(clean_samples, noise, timesteps, target_samples)
 
 # Access sigmas for sampling
 print(f"Sigmas: {scheduler.sigmas}")
+print(f"Init noise sigma: {scheduler.init_noise_sigma}")
+
+# Save and load scheduler config
+scheduler.save_config("./my_scheduler")
+loaded_scheduler = DDBMScheduler.from_config("./my_scheduler")
+```
+
+## Diffusers-Style Training
+
+Train DDBM models using the accelerate library for distributed training:
+
+```sh
+# Single GPU training
+python scripts/train_ddbm_diffusers.py \
+    --dataset_name edges2handbags \
+    --data_dir /path/to/data \
+    --output_dir ./outputs/ddbm-e2h \
+    --resolution 64 \
+    --train_batch_size 32 \
+    --num_epochs 100 \
+    --pred_mode vp
+
+# Multi-GPU training with accelerate
+accelerate launch scripts/train_ddbm_diffusers.py \
+    --dataset_name edges2handbags \
+    --data_dir /path/to/data \
+    --output_dir ./outputs/ddbm-e2h \
+    --mixed_precision fp16 \
+    --use_ema
 ```
 
 See [examples/diffusers_example.py](examples/diffusers_example.py) for more detailed examples.

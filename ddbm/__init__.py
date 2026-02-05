@@ -1,23 +1,45 @@
 """
 Denoising Diffusion Bridge Models (DDBM)
 
-This package provides implementation of DDBM with both original API 
-and Hugging Face diffusers-compatible components.
+This package provides a Hugging Face diffusers-compatible implementation of DDBM
+for image-to-image translation using diffusion bridges.
 
 Original paper: https://arxiv.org/abs/2309.16948
+
+Quick Start:
+    ```python
+    from ddbm import DDBMScheduler, DDBMPipeline
+
+    # Create scheduler
+    scheduler = DDBMScheduler(pred_mode='vp', sigma_max=1.0)
+
+    # Load your trained model
+    model = ...  # Your trained DDBM UNet
+
+    # Create pipeline
+    pipeline = DDBMPipeline(unet=model, scheduler=scheduler)
+
+    # Run inference
+    result = pipeline(source_image=your_image, num_inference_steps=40)
+    images = result.images
+    ```
 """
 
-# Diffusers-compatible components (always available)
-from .schedulers import DDBMScheduler
-from .pipelines import DDBMPipeline
+# Diffusers-compatible components (primary API)
+from .schedulers import DDBMScheduler, DDBMSchedulerOutput
+from .pipelines import DDBMPipeline, DDBMPipelineOutput
+
+__version__ = "0.3.0"
 
 __all__ = [
-    # Diffusers-compatible
+    # Diffusers-compatible (primary API)
     "DDBMScheduler",
+    "DDBMSchedulerOutput",
     "DDBMPipeline",
-    # Original (imported lazily to avoid dependency issues)
+    "DDBMPipelineOutput",
+    # Original components (lazy loaded for backward compatibility)
     "KarrasDenoiser",
-    "karras_sample", 
+    "karras_sample",
     "UNetModel",
     "SongUNet",
     "create_model",
