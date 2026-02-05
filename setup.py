@@ -25,9 +25,9 @@ setup(
         'torchmetrics[image]',
         'prdc',
         'clean-fid==0.1.35',
-        # Diffusers integration
+        # Diffusers integration (with secure versions)
         'diffusers>=0.25.0',
-        'transformers>=4.25.0',
+        'transformers>=4.48.0',  # Security fix for deserialization vulnerability
         'accelerate>=0.20.0',
     ],
     extras_require={
